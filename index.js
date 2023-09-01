@@ -5,6 +5,7 @@
 var express = require('express');
 var app = express();
 
+
 // enable CORS (https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
 // so that your API is remotely testable by FCC 
 var cors = require('cors');
@@ -24,28 +25,40 @@ app.get("/api/hello", function(req, res) {
   res.json({ greeting: 'hello API' });
 });
 
-// Timestamp Microservice Endpoint
-app.get("/api/:date", function(req, res) {
-  const inputDate = req.params.date;
-  let dateObject;
-  // Check if the input date is in Unix timestamp format (consisting of digits)
-  if (/^\d+$/.test(inputDate)) {
-    dateObject = new Date(parseInt(inputDate)); // Convert Unix timestamp to a Date object
+
+// New route to handle timestamp requests
+app.get('/api/:date?', (req, res) => {
+  let { date } = req.params;
+
+  // If date is empty or undefined, use the current time
+  if (!date) {
+    date = new Date();
   } else {
-    dateObject = new Date(inputDate); // Parse the input date using Date constructor
+    // Check if the input date is a valid timestamp (numeric)
+    //isNaN(date): This function checks if the date variable is not a numeric value. If it returns true, it means date is not a valid numeric value, suggesting that it might be a date string.
+    //In this case, the code attempts to create a JavaScript Date object from the date string using new Date(date).
+    //However, there's another check involved here. Before creating the Date object, it converts the date string into a numeric timestamp by using parseInt(date). This step is essential because sometimes the date might be provided as a string that can be parsed into a numeric timestamp.
+    if (!isNaN(date)) {
+      date = new Date(parseInt(date));
+    } else {
+      // Attempt to parse the input date as a date string
+      date = new Date(date);
+    }
   }
 
-  // Check if the dateObject is a valid Date
-  if (isNaN(dateObject.getTime())) {
-    res.json({ error: "Invalid date" }); // Return an error JSON response
+  // Check if the input date is valid
+  //date.getTime(): This method is called on the date object to retrieve the timestamp in milliseconds since the Unix epoch (January 1, 1970, 00:00:00 UTC). If date is a valid Date object, this will return a numeric timestamp.isNaN(date.getTime()): This checks if the timestamp obtained from date is not a valid numeric value. If date is a valid Date object, date.getTime() will return a numeric timestamp, and isNaN will return false, indicating that the timestamp is valid.If isNaN(date.getTime()) returns false, it means that date is a valid Date object, and its timestamp is also valid. Therefore, the code inside the if block is executed.
+  if (!isNaN(date.getTime())) {
+    // Format the output in the specified format
+    const response = {
+      unix: date.getTime(),
+      utc: date.toUTCString(),
+    };
+    res.json(response);
   } else {
-    res.json({
-      unix: dateObject.getTime(), // Return the Unix timestamp equivalent of the date
-      utc: dateObject.toUTCString() // Return the UTC date string
-    });
+    res.json({ error: 'Invalid Date' });
   }
 });
-
 
 // listen for requests :)
 var listener = app.listen(process.env.PORT, function() {
